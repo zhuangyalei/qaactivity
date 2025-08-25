@@ -6,7 +6,7 @@ import http from '../utils/http'
 
 const drawId = ref('')
 const isLoading = ref(true)
-
+const hasSubmittedAudit = ref(false)
 // 题目数据
 const questions = ref([])
 
@@ -20,6 +20,7 @@ const draw = async () => {
   const res = (await http.post('/amtn-form/knowledge/questionDraw/draw', postData)).data
   drawId.value = res.data.drawId
   questions.value = res.data.questions
+  hasSubmittedAudit.value = res.data.hasSubmittedAudit
   questions.value.forEach(q => {
     q.answer = q.answer.map((item, idx) => ({
       name: item,
@@ -30,7 +31,9 @@ const draw = async () => {
 }
 
 const onAudit = async (q) => {
-  console.log('审核', q)
+  if (hasSubmittedAudit.value) {
+    return
+  }
   q.auditStatus = q.auditStatus === 1 ? 0 : 1
 }
 
@@ -53,6 +56,7 @@ const onSubmit = async () => {
   if (res.responseStatus.errorcode == 100408) {
     showToast(res.responseStatus.message)
   }
+  draw()
 }
 
 
@@ -111,7 +115,9 @@ onMounted(() => {
         </div>
         <!-- INSERT_YOUR_CODE -->
         <div class="review-actions" style="margin-top: 16px; display: flex; gap: 12px;">
-          <button :class="['audit-btn', q.auditStatus === 1 ? 'audit-passed' : 'audit-not-passed']" @click="onAudit(q)">
+          <button
+            :class="['audit-btn', q.auditStatus === 1 ? 'audit-passed' : 'audit-not-passed', hasSubmittedAudit ? 'disabled' : '']"
+            @click="onAudit(q)">
             {{ q.auditStatus === 1 ? '已通过' : '未通过' }}
           </button>
         </div>
@@ -119,7 +125,8 @@ onMounted(() => {
     </div>
     <!-- 悬浮底部提交按钮 -->
     <div class="submit-bar">
-      <div class="submit-btn" @click="onSubmit">提交</div>
+      <div v-if="!hasSubmittedAudit" class="submit-btn" @click="onSubmit">提交</div>
+      <!-- <div v-else class="submit-btn" @click="onSubmit">重新抽题</div> -->
     </div>
   </main>
 </template>
@@ -927,6 +934,11 @@ onMounted(() => {
       0 2px 8px rgba(255, 255, 255, 0.4) inset;
     color: rgba(107, 114, 128, 0.85);
   }
+}
+
+.disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 /* 响应式优化 */
